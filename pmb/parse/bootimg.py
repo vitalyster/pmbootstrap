@@ -95,6 +95,7 @@ def bootimg(args, path):
     file_output = pmb.chroot.user(args, ["file", "-b", "boot.img"],
                                   working_dir=temp_path,
                                   output_return=True).rstrip()
+    is_elf = False
     if "android bootimg" not in file_output.lower():
         if "force" in args and args.force:
             logging.warning("WARNING: boot.img file seems to be invalid, but"
@@ -110,12 +111,17 @@ def bootimg(args, path):
                                    " 'heimdall-isorec' flash method. See also:"
                                    " <https://wiki.postmarketos.org/wiki/"
                                    "Deviceinfo_flash_methods>")
+            elif ("elf" in file_output.lower()):
+                logging.warning("File is an ELF executable, using 'unpackelf' tool")
+                is_elf = True
             else:
                 raise RuntimeError("File is not an Android boot.img. (" +
                                    file_output + ")")
+    
+    unpack_tool = "unpackelf" if is_elf else "unpackbootimg"
 
     # Extract all the files
-    pmb.chroot.user(args, ["unpackbootimg", "-i", "boot.img"],
+    pmb.chroot.user(args, [unpack_tool, "-i", "boot.img"],
                     working_dir=temp_path)
 
     output = {}
